@@ -56,16 +56,17 @@ class PydanticTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
+            from itemadapter import utils
             from itemadapter.adapter import PydanticAdapter
 
             assert not PydanticAdapter.is_item(PydanticV1Model(name="asdf", value=1234))
             with pytest.raises(
                 TypeError, match=r"tests.PydanticV1Model'\> is not a valid item class"
             ):
-                get_field_meta_from_class(PydanticV1Model, "name")
+                utils.get_field_meta_from_class(PydanticV1Model, "name")
 
-    @mock.patch("itemadapter.utils.pydantic", None)
-    @mock.patch("itemadapter.utils.pydantic_v1", None)
+    @mock.patch("itemadapter._utils.pydantic", None)
+    @mock.patch("itemadapter._utils.pydantic_v1", None)
     def test_module_not_available(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -184,6 +185,8 @@ class PydanticTestCase(unittest.TestCase):
                 ge=18,
                 le=99,
             )
+            # Unsupported pattern [(?i)]
+            year: str = pydantic_v1.Field(regex=r"(?i)\bY\d{4}\b")
             # Sequence with max_items
             tags: set[str] = pydantic_v1.Field(max_items=50)
 
@@ -207,6 +210,9 @@ class PydanticTestCase(unittest.TestCase):
                     "minimum": 18,
                     "maximum": 99,
                 },
+                "year": {
+                    "type": "string",
+                },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
@@ -216,6 +222,6 @@ class PydanticTestCase(unittest.TestCase):
                     "maxItems": 50,
                 },
             },
-            "required": ["name", "age1", "age2", "tags"],
+            "required": ["name", "age1", "age2", "year", "tags"],
         }
         check_schemas(actual, expected)

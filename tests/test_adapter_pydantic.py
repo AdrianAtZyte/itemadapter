@@ -59,17 +59,18 @@ class PydanticTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
+            from itemadapter import utils
             from itemadapter.adapter import PydanticAdapter
 
             assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
             with pytest.raises(
                 TypeError, match=r"tests.PydanticModel'\> is not a valid item class"
             ):
-                get_field_meta_from_class(PydanticModel, "name")
+                utils.get_field_meta_from_class(PydanticModel, "name")
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("itemadapter.utils.pydantic", None)
-    @mock.patch("itemadapter.utils.pydantic_v1", None)
+    @mock.patch("itemadapter._utils.pydantic", None)
+    @mock.patch("itemadapter._utils.pydantic_v1", None)
     def test_module_not_available(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -192,6 +193,8 @@ class PydanticTestCase(unittest.TestCase):
                 gt=17,
                 lt=100,
             )
+            # Unsupported pattern [(?i)]
+            year: str = pydantic.Field(pattern=r"(?i)\bY\d{4}\b")
             # Sequence with max_items
             tags: set[str] = pydantic.Field(max_length=50)
 
@@ -212,6 +215,9 @@ class PydanticTestCase(unittest.TestCase):
                     "exclusiveMaximum": 100,
                     "maximum": 99,
                 },
+                "year": {
+                    "type": "string",
+                },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
@@ -221,6 +227,6 @@ class PydanticTestCase(unittest.TestCase):
                     "maxItems": 50,
                 },
             },
-            "required": ["name", "age", "tags"],
+            "required": ["name", "age", "year", "tags"],
         }
         check_schemas(actual, expected)
